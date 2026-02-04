@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Sutra Reader — Buddhist Speed Reading</title>
+    <title>Sutra Reader</title>
     <style>
         :root {
             --bg: #000;
@@ -461,7 +461,7 @@
     <!-- Setup panel -->
     <div id="setup-panel" class="setup-panel">
         <h1>Sutra Reader</h1>
-        <p class="subtitle">Concentration training through speed reading</p>
+        <p class="subtitle" id="subtitle">Тренировка концентрации через скорочтение</p>
 
         <div class="control-group">
             <label>Language / Язык</label>
@@ -472,22 +472,22 @@
         </div>
 
         <div class="control-group">
-            <label id="duration-label">Session duration</label>
+            <label id="duration-label">Длительность сессии</label>
             <div class="duration-buttons">
-                <button class="duration-btn" data-minutes="3">3 min</button>
-                <button class="duration-btn selected" data-minutes="5">5 min</button>
-                <button class="duration-btn" data-minutes="7">7 min</button>
-                <button class="duration-btn" data-minutes="10">10 min</button>
+                <button class="duration-btn" data-minutes="3">3 мин</button>
+                <button class="duration-btn selected" data-minutes="5">5 мин</button>
+                <button class="duration-btn" data-minutes="7">7 мин</button>
+                <button class="duration-btn" data-minutes="10">10 мин</button>
             </div>
         </div>
 
         <div class="control-group">
-            <label for="speed-slider" id="speed-label">Starting speed: <span id="speed-value">500</span> wpm</label>
+            <label for="speed-slider" id="speed-label">Стартовая скорость: <span id="speed-value">500</span> сл/мин</label>
             <input type="range" id="speed-slider" min="100" max="1500" step="50" value="500">
         </div>
 
 
-        <button id="start-btn" class="start-btn" disabled>Loading sutras...</button>
+        <button id="start-btn" class="start-btn" disabled>Загрузка сутр...</button>
     </div>
 
     <!-- RSVP display -->
@@ -508,7 +508,7 @@
         </div>
 
         <div class="controls-overlay">
-            <div id="speed-display" class="speed-display">500 wpm</div>
+            <div id="speed-display" class="speed-display">500 сл/мин</div>
             <div class="playback-controls">
                 <button id="pause-btn" class="control-btn" title="Space">&#9208;</button>
                 <button id="slower-btn" class="control-btn" title="-">&#8722;</button>
@@ -523,22 +523,22 @@
     <!-- Completion screen -->
     <div id="completion-screen" class="completion-screen hidden">
         <div class="completion-content">
-            <h1 class="completion-title" id="completion-title">Session complete</h1>
+            <h1 class="completion-title" id="completion-title">Сессия завершена</h1>
             <div class="completion-stats">
                 <div class="stat-item">
-                    <span class="stat-label" id="stat-duration-label">Duration</span>
+                    <span class="stat-label" id="stat-duration-label">Длительность</span>
                     <span id="stat-duration" class="stat-value">5:00</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label" id="stat-words-label">Words read</span>
+                    <span class="stat-label" id="stat-words-label">Прочитано слов</span>
                     <span id="stat-words" class="stat-value">1500</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label" id="stat-speed-label">Average speed</span>
-                    <span id="stat-avg-speed" class="stat-value">300 wpm</span>
+                    <span class="stat-label" id="stat-speed-label">Средняя скорость</span>
+                    <span id="stat-avg-speed" class="stat-value">300 сл/мин</span>
                 </div>
             </div>
-            <button id="restart-btn" class="restart-btn">Start again</button>
+            <button id="restart-btn" class="restart-btn">Начать заново</button>
         </div>
     </div>
 
@@ -565,6 +565,7 @@
         // UI translations
         const UI = {
             en: {
+                subtitle: 'Concentration training through speed reading',
                 duration: 'Session duration',
                 speed: 'Starting speed',
                 wpm: 'wpm',
@@ -578,6 +579,7 @@
                 minutes: 'min'
             },
             ru: {
+                subtitle: 'Тренировка концентрации через скорочтение',
                 duration: 'Длительность сессии',
                 speed: 'Стартовая скорость',
                 wpm: 'сл/мин',
@@ -875,6 +877,7 @@
 
         function updateUI() {
             const ui = UI[selectedLang];
+            document.getElementById('subtitle').textContent = ui.subtitle;
             document.getElementById('duration-label').textContent = ui.duration;
             document.getElementById('speed-label').innerHTML = `${ui.speed}: <span id="speed-value">${wpm}</span> ${ui.wpm}`;
             document.getElementById('start-btn').textContent = indexData ? ui.start : ui.loading;
