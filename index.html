@@ -130,13 +130,6 @@
             color: #fff;
         }
 
-        .info-text {
-            margin-top: 16px;
-            font-size: 12px;
-            color: var(--dim);
-            text-align: center;
-        }
-
         .start-btn {
             width: 100%;
             padding: 16px;
@@ -428,11 +421,6 @@
                 padding: 12px;
                 font-size: 14px;
             }
-            .info-text {
-                grid-column: 1 / -1;
-                font-size: 10px;
-            }
-
             /* RSVP display */
             .word-container {
                 font-size: clamp(36px, 12vh, 64px);
@@ -496,7 +484,6 @@
             <input type="range" id="speed-slider" min="100" max="1500" step="50" value="500">
         </div>
 
-        <div id="info-text" class="info-text"></div>
 
         <button id="start-btn" class="start-btn" disabled>Loading sutras...</button>
     </div>
@@ -586,8 +573,6 @@
                 wordsLabel: 'Words read',
                 speedLabel: 'Average speed',
                 restart: 'Start again',
-                texts: 'texts',
-                words: 'words',
                 minutes: 'min'
             },
             ru: {
@@ -601,8 +586,6 @@
                 wordsLabel: 'Прочитано слов',
                 speedLabel: 'Средняя скорость',
                 restart: 'Начать заново',
-                texts: 'текстов',
-                words: 'слов',
                 minutes: 'мин'
             }
         };
@@ -898,20 +881,8 @@
             document.querySelectorAll('.duration-btn').forEach(btn => {
                 btn.textContent = `${btn.dataset.minutes} ${ui.minutes}`;
             });
-
-            updateInfo();
         }
 
-        function updateInfo() {
-            if (!indexData) return;
-
-            const entries = indexData[selectedLang];
-            const totalWords = entries.reduce((sum, e) => sum + e.words, 0);
-            const ui = UI[selectedLang];
-
-            document.getElementById('info-text').textContent =
-                `${entries.length} ${ui.texts} • ${totalWords.toLocaleString()} ${ui.words}`;
-        }
 
         async function loadSutraText(filePath) {
             // Check cache
