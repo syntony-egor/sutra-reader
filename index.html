@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Sutra Reader — Buddhist Speed Reading</title>
     <style>
         :root {
@@ -175,10 +175,15 @@
             left: 0;
             width: 100vw;
             height: 100vh;
+            height: 100dvh; /* Dynamic viewport height for mobile */
             background: var(--bg);
             display: flex;
             align-items: center;
             justify-content: center;
+            touch-action: manipulation; /* Prevent zoom on double-tap */
+            overflow: hidden;
+            /* Safe area insets for notched phones */
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
 
         /* Crosshair */
@@ -369,13 +374,58 @@
 
         .restart-btn:hover { background: var(--accent-hover); }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .word-container { font-size: 48px; }
+        /* Responsive - Portrait Mobile */
+        @media (max-width: 768px) and (orientation: portrait) {
+            .word-container { font-size: clamp(32px, 10vw, 48px); }
             .control-btn { width: 48px; height: 48px; }
             .setup-panel { margin: 30px auto; padding: 24px; }
             #word-before { flex: 0 0 42%; }
             .crosshair-v-top, .crosshair-v-bottom { left: calc(42% + 18px); }
+            .crosshair-h-top { top: calc(50% - 40px); }
+            .crosshair-h-bottom { top: calc(50% + 40px); }
+            .crosshair-v-top { bottom: calc(50% + 40px); }
+            .crosshair-v-bottom { top: calc(50% + 40px); }
+        }
+
+        /* Responsive - Landscape Mobile */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .word-container {
+                font-size: clamp(36px, 12vh, 64px);
+            }
+            .control-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+            .rsvp-controls {
+                bottom: 8px;
+                gap: 8px;
+            }
+            .crosshair-h-top { top: calc(50% - 50px); }
+            .crosshair-h-bottom { top: calc(50% + 50px); }
+            .crosshair-v-top { bottom: calc(50% + 50px); }
+            .crosshair-v-bottom { top: calc(50% + 50px); }
+            .progress-container {
+                height: 3px;
+            }
+            .sutra-title {
+                top: 8px;
+                font-size: 10px;
+            }
+            .speed-display {
+                top: 8px;
+                font-size: 11px;
+            }
+            #word-before { flex: 0 0 40%; }
+            .crosshair-v-top, .crosshair-v-bottom { left: calc(40% + 12px); }
+        }
+
+        /* Very long words - scale down */
+        .word-container.long-word {
+            font-size: 80% !important;
+        }
+        .word-container.very-long-word {
+            font-size: 60% !important;
         }
     </style>
 </head>
@@ -558,6 +608,15 @@
             document.getElementById('word-before').textContent = word.substring(0, orpIdx);
             document.getElementById('word-orp').textContent = word[orpIdx] || '';
             document.getElementById('word-after').textContent = word.substring(orpIdx + 1);
+
+            // Handle long words - scale down font
+            const container = document.querySelector('.word-container');
+            container.classList.remove('long-word', 'very-long-word');
+            if (word.length > 18) {
+                container.classList.add('very-long-word');
+            } else if (word.length > 12) {
+                container.classList.add('long-word');
+            }
         }
 
         function updateProgress() {
