@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sutra Reader — Buddhist Speed Reading</title>
+    <style>
+        :root {
+            --bg: #000;
+            --fg: #e0e0e0;
+            --dim: #666;
+            --border: #333;
+            --orp-color: #e63946;
+            --accent: #e63946;
+            --accent-hover: #c82333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 14px;
+            background: var(--bg);
+            color: var(--fg);
+            min-height: 100vh;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Setup Panel */
+        .setup-panel {
+            max-width: 400px;
+            margin: 60px auto;
+            padding: 32px;
+        }
+
+        .setup-panel h1 {
+            font-weight: 400;
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--fg);
+        }
+
+        .setup-panel .subtitle {
+            font-size: 13px;
+            color: var(--dim);
+            margin-bottom: 32px;
+        }
+
+        .control-group {
+            margin-bottom: 24px;
+        }
+
+        .control-group label {
+            display: block;
+            color: var(--dim);
+            font-size: 12px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            margin-top: 8px;
+            accent-color: var(--accent);
+        }
+
+        /* Language toggle */
+        .lang-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .lang-btn {
+            flex: 1;
+            padding: 16px;
+            background: #111;
+            border: 1px solid var(--border);
+            color: var(--fg);
+            font-family: inherit;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.15s;
+        }
+
+        .lang-btn:hover {
+            background: #222;
+            border-color: var(--dim);
+        }
+
+        .lang-btn.selected {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        /* Duration buttons */
+        .duration-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .duration-btn {
+            flex: 1;
+            padding: 12px 16px;
+            background: #111;
+            border: 1px solid var(--border);
+            color: var(--fg);
+            font-family: inherit;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.15s;
+        }
+
+        .duration-btn:hover {
+            background: #222;
+            border-color: var(--dim);
+        }
+
+        .duration-btn.selected {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .info-text {
+            margin-top: 16px;
+            font-size: 12px;
+            color: var(--dim);
+            text-align: center;
+        }
+
+        .start-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--accent);
+            border: none;
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-top: 24px;
+            transition: background 0.2s;
+        }
+
+        .start-btn:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+
+        .start-btn:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+        }
+
+        .loading {
+            color: var(--dim);
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* RSVP Display */
+        .rsvp-display {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Crosshair */
+        .crosshair-h-top, .crosshair-h-bottom {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #333;
+            pointer-events: none;
+        }
+        .crosshair-h-top { top: calc(50% - 60px); }
+        .crosshair-h-bottom { top: calc(50% + 60px); }
+
+        .crosshair-v-top, .crosshair-v-bottom {
+            position: absolute;
+            left: calc(45% + 18px);
+            width: 1px;
+            background: #333;
+            pointer-events: none;
+        }
+        .crosshair-v-top { top: 0; bottom: calc(50% + 60px); }
+        .crosshair-v-bottom { top: calc(50% + 60px); bottom: 0; }
+
+        /* Word Display */
+        .word-container {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 72px;
+            white-space: nowrap;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: baseline;
+        }
+
+        #word-before {
+            flex: 0 0 45%;
+            text-align: right;
+            color: var(--fg);
+        }
+
+        #word-orp {
+            color: var(--orp-color);
+            font-weight: 600;
+        }
+
+        #word-after {
+            color: var(--fg);
+        }
+
+        /* Sutra title display */
+        .sutra-title {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            right: 24px;
+            font-size: 12px;
+            color: #444;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #111;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--orp-color);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        /* Controls */
+        .controls-overlay {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .speed-display {
+            font-size: 14px;
+            color: var(--dim);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .playback-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-btn {
+            width: 40px;
+            height: 40px;
+            background: #111;
+            border: 1px solid var(--border);
+            color: var(--fg);
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .control-btn:hover {
+            background: #222;
+            border-color: var(--dim);
+        }
+
+        .help-text {
+            position: absolute;
+            bottom: 24px;
+            left: 24px;
+            font-size: 11px;
+            color: #444;
+        }
+
+        /* Completion Screen */
+        .completion-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .completion-content {
+            text-align: center;
+            max-width: 400px;
+            padding: 32px;
+        }
+
+        .completion-title {
+            font-size: 28px;
+            font-weight: 400;
+            margin-bottom: 32px;
+        }
+
+        .completion-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-label { font-size: 14px; color: var(--dim); }
+        .stat-value { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+        .restart-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--accent);
+            border: none;
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .restart-btn:hover { background: var(--accent-hover); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .word-container { font-size: 48px; }
+            .control-btn { width: 48px; height: 48px; }
+            .setup-panel { margin: 30px auto; padding: 24px; }
+            #word-before { flex: 0 0 42%; }
+            .crosshair-v-top, .crosshair-v-bottom { left: calc(42% + 18px); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Setup panel -->
+    <div id="setup-panel" class="setup-panel">
+        <h1>Sutra Reader</h1>
+        <p class="subtitle">Concentration training through speed reading</p>
+
+        <div class="control-group">
+            <label>Language / Язык</label>
+            <div class="lang-toggle">
+                <button class="lang-btn selected" data-lang="en">English</button>
+                <button class="lang-btn" data-lang="ru">Русский</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label id="duration-label">Session duration</label>
+            <div class="duration-buttons">
+                <button class="duration-btn" data-minutes="3">3 min</button>
+                <button class="duration-btn selected" data-minutes="5">5 min</button>
+                <button class="duration-btn" data-minutes="7">7 min</button>
+                <button class="duration-btn" data-minutes="10">10 min</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label for="speed-slider" id="speed-label">Starting speed: <span id="speed-value">500</span> wpm</label>
+            <input type="range" id="speed-slider" min="100" max="1500" step="50" value="500">
+        </div>
+
+        <div id="info-text" class="info-text"></div>
+
+        <button id="start-btn" class="start-btn" disabled>Loading sutras...</button>
+    </div>
+
+    <!-- RSVP display -->
+    <div id="rsvp-display" class="rsvp-display hidden">
+        <div class="crosshair-h-top"></div>
+        <div class="crosshair-h-bottom"></div>
+        <div class="crosshair-v-top"></div>
+        <div class="crosshair-v-bottom"></div>
+
+        <div id="sutra-title" class="sutra-title"></div>
+
+        <div class="word-container">
+            <span id="word-before"></span><span id="word-orp"></span><span id="word-after"></span>
+        </div>
+
+        <div class="progress-container">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
+
+        <div class="controls-overlay">
+            <div id="speed-display" class="speed-display">500 wpm</div>
+            <div class="playback-controls">
+                <button id="pause-btn" class="control-btn" title="Space">&#9208;</button>
+                <button id="slower-btn" class="control-btn" title="-">&#8722;</button>
+                <button id="faster-btn" class="control-btn" title="+">+</button>
+                <button id="exit-btn" class="control-btn" title="Esc">&#10005;</button>
+            </div>
+        </div>
+
+        <div class="help-text">Space: pause &nbsp; &#8593;&#8595;: speed &nbsp; Esc: exit</div>
+    </div>
+
+    <!-- Completion screen -->
+    <div id="completion-screen" class="completion-screen hidden">
+        <div class="completion-content">
+            <h1 class="completion-title" id="completion-title">Session complete</h1>
+            <div class="completion-stats">
+                <div class="stat-item">
+                    <span class="stat-label" id="stat-duration-label">Duration</span>
+                    <span id="stat-duration" class="stat-value">5:00</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label" id="stat-words-label">Words read</span>
+                    <span id="stat-words" class="stat-value">1500</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label" id="stat-speed-label">Average speed</span>
+                    <span id="stat-avg-speed" class="stat-value">300 wpm</span>
+                </div>
+            </div>
+            <button id="restart-btn" class="restart-btn">Start again</button>
+        </div>
+    </div>
+
+    <script>
+        // ============== State ==============
+        let indexData = null;
+        let sutraTextCache = {}; // Cache loaded sutra texts: {filePath: data}
+        let selectedLang = 'en';
+        let sessionDurationMinutes = 5;
+        let wpm = 500;
+        let isPlaying = false;
+        let playTimer = null;
+        let sessionStartTime = null;
+        let sessionEndTime = null;
+        let wordsReadCount = 0;
+        let speedChanges = [];
+
+        // Current reading position
+        let selectedSutras = [];
+        let currentSutraIndex = 0;
+        let currentWordIndex = 0;
+        let currentWords = [];
+
+        // UI translations
+        const UI = {
+            en: {
+                duration: 'Session duration',
+                speed: 'Starting speed',
+                wpm: 'wpm',
+                start: 'Start session',
+                loading: 'Loading sutras...',
+                complete: 'Session complete',
+                durationLabel: 'Duration',
+                wordsLabel: 'Words read',
+                speedLabel: 'Average speed',
+                restart: 'Start again',
+                texts: 'texts',
+                words: 'words',
+                minutes: 'min'
+            },
+            ru: {
+                duration: 'Длительность сессии',
+                speed: 'Стартовая скорость',
+                wpm: 'сл/мин',
+                start: 'Начать сессию',
+                loading: 'Загрузка сутр...',
+                complete: 'Сессия завершена',
+                durationLabel: 'Длительность',
+                wordsLabel: 'Прочитано слов',
+                speedLabel: 'Средняя скорость',
+                restart: 'Начать заново',
+                texts: 'текстов',
+                words: 'слов',
+                minutes: 'мин'
+            }
+        };
+
+        // ============== Text Processing ==============
+
+        function getORPIndex(word) {
+            const len = word.length;
+            if (len <= 1) return 0;
+            if (len <= 3) return 0;
+            if (len <= 5) return 1;
+            if (len <= 9) return 2;
+            if (len <= 13) return 3;
+            return Math.floor(len * 0.35);
+        }
+
+        function parseTextToWords(text) {
+            // Split into paragraphs first
+            const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim());
+            const result = [];
+
+            for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
+                const words = paragraphs[pIdx].split(/\s+/).filter(w => w.length > 0);
+                for (let i = 0; i < words.length; i++) {
+                    result.push({
+                        text: words[i],
+                        isEndOfParagraph: i === words.length - 1 && pIdx < paragraphs.length - 1
+                    });
+                }
+            }
+            return result;
+        }
+
+
+        // ============== Display ==============
+
+        function displayWord(wordObj) {
+            const word = wordObj.text;
+            const orpIdx = getORPIndex(word);
+
+            document.getElementById('word-before').textContent = word.substring(0, orpIdx);
+            document.getElementById('word-orp').textContent = word[orpIdx] || '';
+            document.getElementById('word-after').textContent = word.substring(orpIdx + 1);
+        }
+
+        function updateProgress() {
+            if (!sessionStartTime || !sessionEndTime) return;
+            const now = Date.now();
+            const total = sessionEndTime - sessionStartTime;
+            const elapsed = now - sessionStartTime;
+            const progress = Math.min(100, (elapsed / total) * 100);
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+        }
+
+        function updateSutraTitle() {
+            if (selectedSutras.length > 0 && currentSutraIndex < selectedSutras.length) {
+                document.getElementById('sutra-title').textContent = selectedSutras[currentSutraIndex].title;
+            }
+        }
+
+        // ============== Playback ==============
+
+        function getWordDelay(wordObj) {
+            let delay = 60000 / wpm;
+            const word = wordObj.text;
+            const len = word.length;
+
+            if (len > 8) delay *= 1.3;
+            else if (len > 5) delay *= 1.1;
+
+            const lastChar = word[word.length - 1];
+            if ('.!?'.includes(lastChar)) delay *= 1.8;
+            else if (',;:'.includes(lastChar)) delay *= 1.3;
+
+            if (wordObj.isEndOfParagraph) delay *= 2.2;
+
+            return delay;
+        }
+
+        function loadNextSutra() {
+            if (currentSutraIndex >= selectedSutras.length) {
+                currentSutraIndex = 0; // Loop
+            }
+            currentWords = parseTextToWords(selectedSutras[currentSutraIndex].text);
+            currentWordIndex = 0;
+            updateSutraTitle();
+        }
+
+        function playNext() {
+            if (!isPlaying) return;
+
+            if (Date.now() >= sessionEndTime) {
+                endSession();
+                return;
+            }
+
+            // Need new sutra?
+            if (currentWordIndex >= currentWords.length) {
+                currentSutraIndex++;
+                loadNextSutra();
+            }
+
+            if (currentWords.length === 0) {
+                endSession();
+                return;
+            }
+
+            const wordObj = currentWords[currentWordIndex];
+            displayWord(wordObj);
+            updateProgress();
+            currentWordIndex++;
+            wordsReadCount++;
+
+            playTimer = setTimeout(playNext, getWordDelay(wordObj));
+        }
+
+        function play() {
+            isPlaying = true;
+            document.getElementById('pause-btn').innerHTML = '&#9208;';
+            playNext();
+        }
+
+        function pause() {
+            isPlaying = false;
+            document.getElementById('pause-btn').innerHTML = '&#9654;';
+            if (playTimer) {
+                clearTimeout(playTimer);
+                playTimer = null;
+            }
+        }
+
+        function togglePlayPause() {
+            if (isPlaying) pause();
+            else play();
+        }
+
+        function adjustSpeed(delta) {
+            const oldWpm = wpm;
+            wpm = Math.max(100, Math.min(1500, wpm + delta));
+            if (wpm === oldWpm) return;
+
+            document.getElementById('speed-display').textContent = `${wpm} ${UI[selectedLang].wpm}`;
+            document.getElementById('speed-slider').value = wpm;
+            document.getElementById('speed-value').textContent = wpm;
+            speedChanges.push({ time: Date.now(), wpm });
+        }
+
+        // ============== Session ==============
+
+        function calculateAverageSpeed() {
+            if (speedChanges.length === 0) return wpm;
+
+            const sessionEnd = sessionEndTime || Date.now();
+            let weightedSum = 0;
+            let totalDuration = 0;
+
+            const initialSpeed = parseInt(document.getElementById('speed-slider').value);
+            const firstChangeTime = speedChanges[0].time;
+            const initialDuration = firstChangeTime - sessionStartTime;
+            weightedSum += initialSpeed * initialDuration;
+            totalDuration += initialDuration;
+
+            for (let i = 0; i < speedChanges.length; i++) {
+                const change = speedChanges[i];
+                const nextTime = (i < speedChanges.length - 1) ? speedChanges[i + 1].time : sessionEnd;
+                const duration = nextTime - change.time;
+                weightedSum += change.wpm * duration;
+                totalDuration += duration;
+            }
+
+            return totalDuration > 0 ? Math.round(weightedSum / totalDuration) : wpm;
+        }
+
+        function formatDuration(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        async function startReading() {
+            const startBtn = document.getElementById('start-btn');
+            startBtn.disabled = true;
+            startBtn.textContent = UI[selectedLang].loading;
+
+            // Select which sutras we need for this session
+            const sutraEntries = selectSutrasForSession(selectedLang, sessionDurationMinutes);
+
+            if (sutraEntries.length === 0) {
+                alert('No sutras available');
+                startBtn.disabled = false;
+                startBtn.textContent = UI[selectedLang].start;
+                return;
+            }
+
+            // Load only the selected sutras (parallel fetch)
+            try {
+                const loadPromises = sutraEntries.map(entry =>
+                    loadSutraText(entry.file).then(data => ({
+                        ...entry,
+                        title: data.title || entry.title,
+                        text: data.text
+                    }))
+                );
+                selectedSutras = await Promise.all(loadPromises);
+
+                console.log(`Loaded ${selectedSutras.length} sutras for session`);
+            } catch (e) {
+                console.error('Failed to load sutras:', e);
+                alert('Failed to load sutras');
+                startBtn.disabled = false;
+                startBtn.textContent = UI[selectedLang].start;
+                return;
+            }
+
+            // Reset state
+            currentSutraIndex = 0;
+            currentWordIndex = 0;
+            wordsReadCount = 0;
+            speedChanges = [];
+            wpm = parseInt(document.getElementById('speed-slider').value);
+
+            // Load first sutra
+            loadNextSutra();
+
+            // Set timing
+            sessionStartTime = Date.now();
+            sessionEndTime = sessionStartTime + (sessionDurationMinutes * 60 * 1000);
+
+            // Show RSVP
+            document.getElementById('setup-panel').classList.add('hidden');
+            document.getElementById('rsvp-display').classList.remove('hidden');
+            document.getElementById('speed-display').textContent = `${wpm} ${UI[selectedLang].wpm}`;
+
+            // Reset display
+            document.getElementById('word-before').textContent = '';
+            document.getElementById('word-orp').textContent = '';
+            document.getElementById('word-after').textContent = '';
+            document.getElementById('progress-bar').style.width = '0%';
+
+            startBtn.textContent = UI[selectedLang].start;
+
+            play();
+        }
+
+        function endSession() {
+            pause();
+
+            const actualDuration = Math.round((Date.now() - sessionStartTime) / 1000);
+            const avgSpeed = calculateAverageSpeed();
+
+            showCompletionScreen(actualDuration, wordsReadCount, avgSpeed);
+        }
+
+        function showCompletionScreen(durationSec, wordsRead, avgSpeed) {
+            document.getElementById('rsvp-display').classList.add('hidden');
+            document.getElementById('completion-screen').classList.remove('hidden');
+
+            document.getElementById('completion-title').textContent = UI[selectedLang].complete;
+            document.getElementById('stat-duration-label').textContent = UI[selectedLang].durationLabel;
+            document.getElementById('stat-words-label').textContent = UI[selectedLang].wordsLabel;
+            document.getElementById('stat-speed-label').textContent = UI[selectedLang].speedLabel;
+            document.getElementById('restart-btn').textContent = UI[selectedLang].restart;
+
+            document.getElementById('stat-duration').textContent = formatDuration(durationSec);
+            document.getElementById('stat-words').textContent = wordsRead.toLocaleString();
+            document.getElementById('stat-avg-speed').textContent = `${avgSpeed} ${UI[selectedLang].wpm}`;
+        }
+
+        function exitReading() {
+            pause();
+            document.getElementById('rsvp-display').classList.add('hidden');
+            document.getElementById('setup-panel').classList.remove('hidden');
+            updateInfo();
+        }
+
+        function restartSession() {
+            document.getElementById('completion-screen').classList.add('hidden');
+            document.getElementById('setup-panel').classList.remove('hidden');
+        }
+
+        // ============== UI Updates ==============
+
+        function updateUI() {
+            const ui = UI[selectedLang];
+            document.getElementById('duration-label').textContent = ui.duration;
+            document.getElementById('speed-label').innerHTML = `${ui.speed}: <span id="speed-value">${wpm}</span> ${ui.wpm}`;
+            document.getElementById('start-btn').textContent = sutrasData ? ui.start : ui.loading;
+
+            // Update duration buttons
+            document.querySelectorAll('.duration-btn').forEach(btn => {
+                btn.textContent = `${btn.dataset.minutes} ${ui.minutes}`;
+            });
+
+            updateInfo();
+        }
+
+        function updateInfo() {
+            if (!indexData) return;
+
+            const entries = indexData[selectedLang];
+            const totalWords = entries.reduce((sum, e) => sum + e.words, 0);
+            const ui = UI[selectedLang];
+
+            document.getElementById('info-text').textContent =
+                `${entries.length} ${ui.texts} • ${totalWords.toLocaleString()} ${ui.words}`;
+        }
+
+        async function loadSutraText(filePath) {
+            // Check cache
+            if (sutraTextCache[filePath]) return sutraTextCache[filePath];
+
+            // Load from file
+            const resp = await fetch(filePath);
+            const data = await resp.json();
+            sutraTextCache[filePath] = data;
+            return data;
+        }
+
+        function selectSutrasForSession(lang, minutes) {
+            const entries = indexData[lang];
+            if (!entries || entries.length === 0) return [];
+
+            const targetWords = minutes * 1500;
+
+            // Shuffle entries
+            const shuffled = [...entries].sort(() => Math.random() - 0.5);
+
+            const selected = [];
+            let totalWords = 0;
+
+            for (const entry of shuffled) {
+                selected.push(entry);
+                totalWords += entry.words;
+                if (totalWords >= targetWords) break;
+            }
+
+            // Loop if needed
+            if (totalWords < targetWords) {
+                let idx = 0;
+                while (totalWords < targetWords) {
+                    selected.push(shuffled[idx % shuffled.length]);
+                    totalWords += shuffled[idx % shuffled.length].words;
+                    idx++;
+                }
+            }
+
+            return selected;
+        }
+
+        // ============== Event Listeners ==============
+
+        // Language toggle
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedLang = btn.dataset.lang;
+                updateUI();
+            });
+        });
+
+        // Duration buttons
+        document.querySelectorAll('.duration-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                sessionDurationMinutes = parseInt(btn.dataset.minutes);
+            });
+        });
+
+        document.getElementById('speed-slider').addEventListener('input', (e) => {
+            wpm = parseInt(e.target.value);
+            document.getElementById('speed-value').textContent = wpm;
+        });
+
+        document.getElementById('start-btn').addEventListener('click', startReading);
+        document.getElementById('pause-btn').addEventListener('click', togglePlayPause);
+        document.getElementById('slower-btn').addEventListener('click', () => adjustSpeed(-50));
+        document.getElementById('faster-btn').addEventListener('click', () => adjustSpeed(50));
+        document.getElementById('exit-btn').addEventListener('click', exitReading);
+        document.getElementById('restart-btn').addEventListener('click', restartSession);
+
+        // Keyboard
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('rsvp-display').classList.contains('hidden')) return;
+
+            switch(e.key) {
+                case ' ':
+                    e.preventDefault();
+                    togglePlayPause();
+                    break;
+                case 'ArrowUp':
+                case '+':
+                case '=':
+                    e.preventDefault();
+                    adjustSpeed(50);
+                    break;
+                case 'ArrowDown':
+                case '-':
+                    e.preventDefault();
+                    adjustSpeed(-50);
+                    break;
+                case 'Escape':
+                    exitReading();
+                    break;
+            }
+        });
+
+        // Click to pause
+        document.getElementById('rsvp-display').addEventListener('click', (e) => {
+            if (e.target.closest('.control-btn')) return;
+            togglePlayPause();
+        });
+
+        // ============== Load Data ==============
+
+        async function loadIndex() {
+            try {
+                const resp = await fetch('index.json');
+                indexData = await resp.json();
+
+                document.getElementById('start-btn').disabled = false;
+                updateUI();
+
+                console.log(`Index loaded: EN=${indexData.en.count}, RU=${indexData.ru.count} texts`);
+            } catch (e) {
+                console.error('Failed to load index:', e);
+                document.getElementById('start-btn').textContent = 'Error loading data';
+            }
+        }
+
+        loadIndex();
+    </script>
+</body>
+</html>
