@@ -388,8 +388,8 @@
         <div class="control-group">
             <label>Language / Язык</label>
             <div class="lang-toggle">
-                <button class="lang-btn selected" data-lang="en">English</button>
-                <button class="lang-btn" data-lang="ru">Русский</button>
+                <button class="lang-btn selected" data-lang="ru">Русский</button>
+                <button class="lang-btn" data-lang="en">English</button>
             </div>
         </div>
 
@@ -469,7 +469,7 @@
         // ============== State ==============
         let indexData = null;
         let sutraTextCache = {}; // Cache loaded sutra texts: {filePath: data}
-        let selectedLang = 'en';
+        let selectedLang = 'ru';
         let sessionDurationMinutes = 5;
         let wpm = 500;
         let isPlaying = false;
@@ -787,12 +787,15 @@
             pause();
             document.getElementById('rsvp-display').classList.add('hidden');
             document.getElementById('setup-panel').classList.remove('hidden');
-            updateInfo();
+            document.getElementById('start-btn').disabled = false;
+            updateUI();
         }
 
         function restartSession() {
             document.getElementById('completion-screen').classList.add('hidden');
             document.getElementById('setup-panel').classList.remove('hidden');
+            document.getElementById('start-btn').disabled = false;
+            updateUI();
         }
 
         // ============== UI Updates ==============
@@ -801,7 +804,7 @@
             const ui = UI[selectedLang];
             document.getElementById('duration-label').textContent = ui.duration;
             document.getElementById('speed-label').innerHTML = `${ui.speed}: <span id="speed-value">${wpm}</span> ${ui.wpm}`;
-            document.getElementById('start-btn').textContent = sutrasData ? ui.start : ui.loading;
+            document.getElementById('start-btn').textContent = indexData ? ui.start : ui.loading;
 
             // Update duration buttons
             document.querySelectorAll('.duration-btn').forEach(btn => {
@@ -939,7 +942,7 @@
                 document.getElementById('start-btn').disabled = false;
                 updateUI();
 
-                console.log(`Index loaded: EN=${indexData.en.count}, RU=${indexData.ru.count} texts`);
+                console.log(`Index loaded: EN=${indexData.en.length}, RU=${indexData.ru.length} texts`);
             } catch (e) {
                 console.error('Failed to load index:', e);
                 document.getElementById('start-btn').textContent = 'Error loading data';
