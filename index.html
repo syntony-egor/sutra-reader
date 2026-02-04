@@ -420,13 +420,6 @@
             .crosshair-v-top, .crosshair-v-bottom { left: calc(40% + 12px); }
         }
 
-        /* Very long words - scale down */
-        .word-container.long-word {
-            font-size: 80% !important;
-        }
-        .word-container.very-long-word {
-            font-size: 60% !important;
-        }
     </style>
 </head>
 <body>
@@ -608,15 +601,6 @@
             document.getElementById('word-before').textContent = word.substring(0, orpIdx);
             document.getElementById('word-orp').textContent = word[orpIdx] || '';
             document.getElementById('word-after').textContent = word.substring(orpIdx + 1);
-
-            // Handle long words - scale down font
-            const container = document.querySelector('.word-container');
-            container.classList.remove('long-word', 'very-long-word');
-            if (word.length > 18) {
-                container.classList.add('very-long-word');
-            } else if (word.length > 12) {
-                container.classList.add('long-word');
-            }
         }
 
         function updateProgress() {
