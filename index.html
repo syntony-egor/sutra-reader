@@ -534,8 +534,12 @@
                     <span id="stat-words" class="stat-value">1500</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label" id="stat-speed-label">Средняя скорость</span>
-                    <span id="stat-avg-speed" class="stat-value">300 сл/мин</span>
+                    <span class="stat-label" id="stat-main-speed-label">Основная скорость</span>
+                    <span id="stat-main-speed" class="stat-value">300 сл/мин</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label" id="stat-max-speed-label">Максимальная</span>
+                    <span id="stat-max-speed" class="stat-value">500 сл/мин</span>
                 </div>
             </div>
             <button id="restart-btn" class="restart-btn">Начать заново</button>
@@ -603,7 +607,8 @@
                 complete: 'Session complete',
                 durationLabel: 'Duration',
                 wordsLabel: 'Words read',
-                speedLabel: 'Average speed',
+                mainSpeedLabel: 'Main speed',
+                maxSpeedLabel: 'Maximum',
                 restart: 'Start again',
                 minutes: 'min'
             },
@@ -617,7 +622,8 @@
                 complete: 'Сессия завершена',
                 durationLabel: 'Длительность',
                 wordsLabel: 'Прочитано слов',
-                speedLabel: 'Средняя скорость',
+                mainSpeedLabel: 'Основная скорость',
+                maxSpeedLabel: 'Максимальная',
                 restart: 'Начать заново',
                 minutes: 'мин'
             }
@@ -768,28 +774,44 @@
 
         // ============== Session ==============
 
-        function calculateAverageSpeed() {
-            if (speedChanges.length === 0) return wpm;
-
+        function calculateSpeedStats() {
             const sessionEnd = sessionEndTime || Date.now();
-            let weightedSum = 0;
-            let totalDuration = 0;
-
             const initialSpeed = parseInt(document.getElementById('speed-slider').value);
+
+            // Track time spent at each speed
+            const timeAtSpeed = {};
+            let maxSpeed = initialSpeed;
+
+            if (speedChanges.length === 0) {
+                return { mainSpeed: initialSpeed, maxSpeed: initialSpeed };
+            }
+
+            // Time at initial speed
             const firstChangeTime = speedChanges[0].time;
             const initialDuration = firstChangeTime - sessionStartTime;
-            weightedSum += initialSpeed * initialDuration;
-            totalDuration += initialDuration;
+            timeAtSpeed[initialSpeed] = (timeAtSpeed[initialSpeed] || 0) + initialDuration;
 
+            // Time at each subsequent speed
             for (let i = 0; i < speedChanges.length; i++) {
                 const change = speedChanges[i];
                 const nextTime = (i < speedChanges.length - 1) ? speedChanges[i + 1].time : sessionEnd;
                 const duration = nextTime - change.time;
-                weightedSum += change.wpm * duration;
-                totalDuration += duration;
+
+                timeAtSpeed[change.wpm] = (timeAtSpeed[change.wpm] || 0) + duration;
+                if (change.wpm > maxSpeed) maxSpeed = change.wpm;
             }
 
-            return totalDuration > 0 ? Math.round(weightedSum / totalDuration) : wpm;
+            // Find speed with most time
+            let mainSpeed = initialSpeed;
+            let maxTime = 0;
+            for (const [speed, time] of Object.entries(timeAtSpeed)) {
+                if (time > maxTime) {
+                    maxTime = time;
+                    mainSpeed = parseInt(speed);
+                }
+            }
+
+            return { mainSpeed, maxSpeed };
         }
 
         function formatDuration(seconds) {
@@ -869,24 +891,26 @@
             releaseWakeLock();
 
             const actualDuration = Math.round((Date.now() - sessionStartTime) / 1000);
-            const avgSpeed = calculateAverageSpeed();
+            const { mainSpeed, maxSpeed } = calculateSpeedStats();
 
-            showCompletionScreen(actualDuration, wordsReadCount, avgSpeed);
+            showCompletionScreen(actualDuration, wordsReadCount, mainSpeed, maxSpeed);
         }
 
-        function showCompletionScreen(durationSec, wordsRead, avgSpeed) {
+        function showCompletionScreen(durationSec, wordsRead, mainSpeed, maxSpeed) {
             document.getElementById('rsvp-display').classList.add('hidden');
             document.getElementById('completion-screen').classList.remove('hidden');
 
             document.getElementById('completion-title').textContent = UI[selectedLang].complete;
             document.getElementById('stat-duration-label').textContent = UI[selectedLang].durationLabel;
             document.getElementById('stat-words-label').textContent = UI[selectedLang].wordsLabel;
-            document.getElementById('stat-speed-label').textContent = UI[selectedLang].speedLabel;
+            document.getElementById('stat-main-speed-label').textContent = UI[selectedLang].mainSpeedLabel;
+            document.getElementById('stat-max-speed-label').textContent = UI[selectedLang].maxSpeedLabel;
             document.getElementById('restart-btn').textContent = UI[selectedLang].restart;
 
             document.getElementById('stat-duration').textContent = formatDuration(durationSec);
             document.getElementById('stat-words').textContent = wordsRead.toLocaleString();
-            document.getElementById('stat-avg-speed').textContent = `${avgSpeed} ${UI[selectedLang].wpm}`;
+            document.getElementById('stat-main-speed').textContent = `${mainSpeed} ${UI[selectedLang].wpm}`;
+            document.getElementById('stat-max-speed').textContent = `${maxSpeed} ${UI[selectedLang].wpm}`;
         }
 
         function exitReading() {
