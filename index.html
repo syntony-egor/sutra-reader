@@ -562,6 +562,35 @@
         let currentWordIndex = 0;
         let currentWords = [];
 
+        // Wake lock to prevent screen from sleeping
+        let wakeLock = null;
+
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake lock acquired');
+                } catch (e) {
+                    console.log('Wake lock failed:', e.message);
+                }
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock) {
+                wakeLock.release();
+                wakeLock = null;
+                console.log('Wake lock released');
+            }
+        }
+
+        // Re-acquire wake lock when page becomes visible again
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && isPlaying) {
+                requestWakeLock();
+            }
+        });
+
         // UI translations
         const UI = {
             en: {
@@ -831,11 +860,13 @@
 
             startBtn.textContent = UI[selectedLang].start;
 
+            requestWakeLock();
             play();
         }
 
         function endSession() {
             pause();
+            releaseWakeLock();
 
             const actualDuration = Math.round((Date.now() - sessionStartTime) / 1000);
             const avgSpeed = calculateAverageSpeed();
@@ -860,6 +891,7 @@
 
         function exitReading() {
             pause();
+            releaseWakeLock();
             document.getElementById('rsvp-display').classList.add('hidden');
             document.getElementById('setup-panel').classList.remove('hidden');
             document.getElementById('start-btn').disabled = false;
