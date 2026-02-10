@@ -352,6 +352,31 @@
         .stat-label { font-size: 14px; color: var(--dim); }
         .stat-value { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
+        .sutras-read {
+            margin-bottom: 40px;
+            text-align: left;
+        }
+
+        .sutras-read-label {
+            font-size: 14px;
+            color: var(--dim);
+            margin-bottom: 12px;
+        }
+
+        .sutras-read-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .sutras-read-list li {
+            font-size: 13px;
+            color: var(--fg);
+            padding: 6px 0;
+            border-bottom: 1px solid #1a1a1a;
+        }
+
         .restart-btn {
             width: 100%;
             padding: 16px;
@@ -546,6 +571,10 @@
                     <span id="stat-max-speed" class="stat-value">500 сл/мин</span>
                 </div>
             </div>
+            <div id="sutras-read" class="sutras-read hidden">
+                <div class="sutras-read-label" id="stat-sutras-label">Прочитанные сутры</div>
+                <ul id="sutras-read-list" class="sutras-read-list"></ul>
+            </div>
             <button id="restart-btn" class="restart-btn">Начать заново</button>
         </div>
     </div>
@@ -563,6 +592,7 @@
         let sessionEndTime = null;
         let wordsReadCount = 0;
         let speedChanges = [];
+        let readSutraTitles = [];
 
         // Current reading position
         let selectedSutras = [];
@@ -615,6 +645,7 @@
                 avgSpeedLabel: 'Average',
                 maxSpeedLabel: 'Maximum',
                 restart: 'Start again',
+                sutrasLabel: 'Sutras read',
                 minutes: 'min'
             },
             ru: {
@@ -631,6 +662,7 @@
                 avgSpeedLabel: 'Средняя',
                 maxSpeedLabel: 'Максимальная',
                 restart: 'Начать заново',
+                sutrasLabel: 'Прочитанные сутры',
                 minutes: 'мин'
             }
         };
@@ -714,9 +746,13 @@
             if (currentSutraIndex >= selectedSutras.length) {
                 currentSutraIndex = 0; // Loop
             }
-            currentWords = parseTextToWords(selectedSutras[currentSutraIndex].text);
+            const sutra = selectedSutras[currentSutraIndex];
+            currentWords = parseTextToWords(sutra.text);
             currentWordIndex = 0;
             updateSutraTitle();
+            if (!readSutraTitles.includes(sutra.title)) {
+                readSutraTitles.push(sutra.title);
+            }
         }
 
         function playNext() {
@@ -875,6 +911,7 @@
             currentWordIndex = 0;
             wordsReadCount = 0;
             speedChanges = [];
+            readSutraTitles = [];
             wpm = parseInt(document.getElementById('speed-slider').value);
 
             // Load first sutra
@@ -928,6 +965,22 @@
             document.getElementById('stat-main-speed').textContent = `${mainSpeed} ${UI[selectedLang].wpm}`;
             document.getElementById('stat-avg-speed').textContent = `${avgSpeed} ${UI[selectedLang].wpm}`;
             document.getElementById('stat-max-speed').textContent = `${maxSpeed} ${UI[selectedLang].wpm}`;
+
+            // Sutras read
+            const sutrasDiv = document.getElementById('sutras-read');
+            const sutrasList = document.getElementById('sutras-read-list');
+            document.getElementById('stat-sutras-label').textContent = UI[selectedLang].sutrasLabel;
+            sutrasList.innerHTML = '';
+            if (readSutraTitles.length > 0) {
+                readSutraTitles.forEach(title => {
+                    const li = document.createElement('li');
+                    li.textContent = title;
+                    sutrasList.appendChild(li);
+                });
+                sutrasDiv.classList.remove('hidden');
+            } else {
+                sutrasDiv.classList.add('hidden');
+            }
         }
 
         function exitReading() {
